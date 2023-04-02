@@ -121,3 +121,24 @@ the threads take when using this clause?
 
 ### Question 2: Parallel Scan
 
+| N | Sequential Latency(sec) | Parallel: 8 threads Latency (sec) |
+|---|-------------------------|-----------------------------------|
+| $10^8$ | $1.156152$ | $0.250289$ |
+| $2 \times 10^8$ | $2.720552$ | $0.828265$ |
+| $4 \times 10^8$ | $6.027957$ | $1.540014$ |
+
+| N | Sequential Latency(sec) | Parallel: 16 threads Latency (sec) |
+|---|-------------------------|-----------------------------------|
+| $10^8$ | $1.156152$ | $0.245381$ |
+| $2 \times 10^8$ | $2.720552$ | $0.789866$ |
+| $4 \times 10^8$ | $6.027957$ | $0.929338$ |
+
+
+| N | Sequential Latency(sec) | Parallel: 64 threads Latency (sec) |
+|---|-------------------------|-----------------------------------|
+| $10^8$ | $1.156152$ | $0.225652$ |
+| $2 \times 10^8$ | $2.720552$ | $0.592096$ |
+| $4 \times 10^8$ | $6.027957$ | $1.234108$ |
+
+The increase in number of threads from 16 to 64 with $N=4 \times 10^8$ highlights the issues with memory contention and access patterns. However, for smaller $N$ values, the speedup with increasing the number of threads is evident.
+
