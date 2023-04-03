@@ -42,15 +42,13 @@ void scan_seq(long* prefix_sum, const long* A, long n) {
 // }
 
 void scan_omp(long* prefix_sum, const long* A, long n) {
-  // int p = omp_get_num_threads();
-  // if openmp fails to get the correct number of threads, you can try
-  // hardcoding the value as follows.
-  int p = 16;
 
   // Fill out parallel scan: One way to do this is array into p chunks
   // Do a scan in parallel on each chunk, then share/compute the offset
   // through a shared vector and update each chunk by adding the offset
   // in parallel
+
+  int p = 16;
   if (n == 0) return;
   prefix_sum[0] = 0;
   long chunk_size = n/(long)p;
