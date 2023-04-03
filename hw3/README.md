@@ -142,3 +142,29 @@ the threads take when using this clause?
 
 The increase in number of threads from 16 to 64 with $N=4 \times 10^8$ highlights the issues with memory contention and access patterns. However, for smaller $N$ values, the speedup with increasing the number of threads is evident.
 
+### Question 3: Jacobi and Gauss-Seidel 2D
+
+#### Jacobi 2D
+
+Max iterations = $5000$, Reduction factor threshold = $10000$, Norm calculation interval = $500$.
+
+| N   | Thread count| Iters | Total Time (sec)| Time per Iter (sec)  |
+|----:|------------:|------:|----------------:|---------------------:|
+| 128 |       1     | 5000  |   0.253694      |   0.000051           |
+| 128 |       8     | 5000  |   0.078674      |   0.000016           |
+| 128 |      16     | 5000  |   0.101497      |   0.000020           |
+| 128 |      64     | 5000  |   1.609469      |   0.000558           |
+| 256 |      1      | 5000  |   0.942978      |   0.000189           |
+| 256 |      8      | 5000  |   0.215450      |   0.000043           |
+| 256 |     16      | 5000  |   0.184045      |   0.000037           |
+| 256 |     64      | 5000  |   2.204146      |   0.000441           |
+| 512 |      1      | 5000  |   13.345154     |   0.002669           |
+| 512 |      8      | 5000  |   1.759324      |   0.000352           |
+| 512 |     16      | 5000  |   1.018521      |   0.000204           |
+| 512 |     64      | 5000  |   2.350867      |   0.000470           |
+|1024 |      1      | 5000  |   63.725291     |   0.012745           |
+|1024 |      8      | 5000  |   8.861325      |   0.001772           |
+|1024 |     16      | 5000  |   4.573597      |   0.000915           |
+|1024 |     64      | 5000  |   4.532769      |   0.000907           |
+
+
