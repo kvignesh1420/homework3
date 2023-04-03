@@ -6,6 +6,7 @@ inline omp_int_t omp_get_thread_num() { return 0;}
 inline omp_int_t omp_get_num_threads() { return 1;}
 #endif
 
+#define NUM_THREADS 8
 #include <algorithm>
 #include <stdio.h>
 #include <math.h>
@@ -48,7 +49,7 @@ void scan_omp(long* prefix_sum, const long* A, long n) {
   // through a shared vector and update each chunk by adding the offset
   // in parallel
 
-  int p = 16;
+  int p = NUM_THREADS;
   if (n == 0) return;
   prefix_sum[0] = 0;
   long chunk_size = n/(long)p;
