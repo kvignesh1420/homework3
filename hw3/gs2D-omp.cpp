@@ -8,8 +8,8 @@ inline omp_int_t omp_get_thread_num() { return 0;}
 inline omp_int_t omp_get_num_threads() { return 1;}
 #endif
 
-#define NUM_THREADS 1
-#define SIZE 256
+#define NUM_THREADS 64
+#define SIZE 1024
 #define NORM_CALC_INTERVAL 500
 #define MAX_ITERS 5000
 #define RESIDUAL_FACTOR 10000

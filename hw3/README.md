@@ -148,6 +148,8 @@ The increase in number of threads from 16 to 64 with $N=4 \times 10^8$ highlight
 
 Max iterations = $5000$, Reduction factor threshold = $10000$, Norm calculation interval = $500$.
 
+The norm calculation interval indicates the number of iterations after which the residual norm is calculated to check for convergence. It is set to a higher value of $500$ as the convergence is slow and to prevent frequent switches from parallel execution to norm calculation.
+
 | N   | Thread count| Iters | Total Time (sec)| Time per Iter (sec)  |
 |----:|------------:|------:|----------------:|---------------------:|
 | 128 |       1     | 5000  |   0.253694      |   0.000051           |
@@ -167,4 +169,33 @@ Max iterations = $5000$, Reduction factor threshold = $10000$, Norm calculation 
 |1024 |     16      | 5000  |   4.573597      |   0.000915           |
 |1024 |     64      | 5000  |   4.532769      |   0.000907           |
 
+#### GS 2D
+
+Max iterations = $5000$, Reduction factor threshold = $10000$, Norm calculation interval = $500$.
+
+| N   | Thread count| Iters | Total Time (sec)| Time per Iter (sec)  |
+|----:|------------:|------:|----------------:|---------------------:|
+| 128 |       1     | 5000  |   0.338091      |   0.000068           |
+| 128 |       8     | 5000  |   0.132346      |   0.000026           |
+| 128 |      16     | 5000  |   0.214242      |   0.000043           |
+| 128 |      64     | 5000  |   3.245481      |   0.000649           |
+| 256 |       1     | 5000  |   1.218507      |   0.000244           |
+| 256 |       8     | 5000  |   0.285945      |   0.000057           |
+| 256 |      16     | 5000  |   0.321591      |   0.000064           |
+| 256 |      64     | 5000  |   5.097657      |   0.001020           |
+| 512 |       1     | 5000  |   9.266678      |   0.001853           |
+| 512 |       8     | 5000  |   1.245816      |   0.000249           |
+| 512 |      16     | 5000  |   0.904956      |   0.000181           |
+| 512 |      64     | 5000  |   3.987627      |   0.000798           |
+|1024 |       1     | 5000  |   40.155386     |   0.008031           |
+|1024 |       8     | 5000  |   4.382397      |   0.000876           |
+|1024 |      16     | 5000  |   2.494571      |   0.000499           |
+|1024 |      64     | 5000  |   7.528113      |   0.001506           |
+
+
+**Remarks:** 
+
+- For both Jacobi and GS, using $8$ or $16$ threads gave the best speedup. 
+
+- The highest speedup when using $64$ threads is obtained with $N=1024$ for Jacobi 2D. For other smaller cases, increasing the thread count to $64$ resulted in heavy contention for memory between threads. Thus, resulting in slowdowns.
 
