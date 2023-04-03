@@ -8,6 +8,12 @@ inline omp_int_t omp_get_thread_num() { return 0;}
 inline omp_int_t omp_get_num_threads() { return 1;}
 #endif
 
+#define NUM_THREADS 1
+#define SIZE 256
+#define NORM_CALC_INTERVAL 500
+#define MAX_ITERS 5000
+#define RESIDUAL_FACTOR 10000
+
 #include <iostream>
 #include <stdio.h>
 #include <unistd.h>
@@ -15,21 +21,29 @@ inline omp_int_t omp_get_num_threads() { return 1;}
 #include <cmath>
 #include "utils.h"
 
-double ResidualNorm(long N, double* A, double* u, double* f){
+double ResidualNorm(long N, double* u, double* f, double h){
     double norm_sum = 0.0;
-    for(long i = 0; i < (N+2)*(N+2); i++){
-        double temp_sum = 0.0;
-        for(long j = 0; j < (N+2)*(N+2); j++){
-            temp_sum += A[i*(N+2)*(N+2) + j]*u[j];
+    for (long i = 1; i < N+1; i++){
+        for(long j = 1; j < N+1; j++){
+            long point = i*(N+2) + j;
+            long c1 = (i-1)*(N+2) + j;
+            long c2 = (i)*(N+2) + j-1;
+
+            long c3 = (i+1)*(N+2) + j;
+            long c4 = (i)*(N+2) + j+1;
+            double temp_sum = 0.0;
+            temp_sum -= (u[c1] + u[c2] + u[c3] + u[c4]);
+            temp_sum += 4*u[point];
+            temp_sum /= (h*h);
+            norm_sum += (temp_sum - f[point])*(temp_sum - f[point]);
         }
-        norm_sum += (temp_sum - f[i])*(temp_sum - f[i]);
     }
     return std::sqrt(norm_sum);
 }
 
 
-double* GS_2D_OMP(long N, double* A, double* u, double* f, double h, long max_iters, long res_factor){
-    printf("\nRunning GS_2D based on Red-Black coloring using OpenMP\n");
+double* GS_2D_OMP(long N, double* u, double* f, double h, long max_iters, long res_factor){
+    printf("\nRunning GS_2D based on Red-Black coloring\n");
     long iter = 0;
     double initial_residual_norm = -1;
     double residual_norm = -1;
@@ -37,11 +51,10 @@ double* GS_2D_OMP(long N, double* A, double* u, double* f, double h, long max_it
     t.tic();
     while(iter < max_iters){
 
-        #pragma omp parallel for num_threads(16)
+        #pragma omp parallel for num_threads(NUM_THREADS)
         for(long i = 1; i < N+1; i++){
             // update the red points based on prev black points
             for(long j = 1 + (i-1)%2; j < N+1; j+=2){
-                // printf("\n Red Point i: %ld j: %ld \n", i, j);
                 double temp_sum = 0.0;
                 temp_sum += h*h*f[i*(N+2) + j];
                 temp_sum += u[(i-1)*(N+2) + (j)];
@@ -53,11 +66,10 @@ double* GS_2D_OMP(long N, double* A, double* u, double* f, double h, long max_it
             }
         }
 
-        #pragma omp parallel for num_threads(16)
+        #pragma omp parallel for num_threads(NUM_THREADS)
         for(long i = 1; i < N+1; i++){
             // update the black points based on new red points
             for(long j = 1 + (i)%2; j < N+1; j+=2){
-                // printf("\n Black Point i: %ld j: %ld \n", i, j);
                 double temp_sum = 0.0;
                 temp_sum += h*h*f[i*(N+2) + j];
                 temp_sum += u[(i-1)*(N+2) + (j)];
@@ -71,12 +83,12 @@ double* GS_2D_OMP(long N, double* A, double* u, double* f, double h, long max_it
 
         iter += 1;
         if(iter==1){
-            residual_norm = ResidualNorm(N, A, u, f);
+            residual_norm = ResidualNorm(/*N=*/N, /*u=*/u, /*f=*/f, /*h=*/h);
             initial_residual_norm = residual_norm;
         }
 
-        if (iter%100 == 0){
-            residual_norm = ResidualNorm(N, A, u, f);
+        if (iter%NORM_CALC_INTERVAL == 0){
+            residual_norm = ResidualNorm(/*N=*/N, /*u=*/u, /*f=*/f, /*h=*/h);
             printf("GS: Iter: %d Residual norm: %f\n", iter, residual_norm);
             if(initial_residual_norm/residual_norm > res_factor){
                 printf("GS: Early exit at iteration: %d due to sufficient reduction in residual norm.\n", iter);
@@ -93,19 +105,17 @@ double* GS_2D_OMP(long N, double* A, double* u, double* f, double h, long max_it
 }
 
 
-double* GS_2D_Vanilla_Seq(long N, double* A, double* u, double* f, double h, long max_iters, long res_factor){
-    printf("\nRunning GS2D in Sequential Mode\n");
+double* GS_2D_Vanilla_Seq(long N, double* u, double* f, double h, long max_iters, long res_factor){
+    printf("\nRunning GS2D in Sequential Mode with Vanilla Implementation\n");
     long iter = 0;
     double initial_residual_norm = -1;
     double residual_norm = -1;
     Timer t;
     t.tic();
     while(iter < max_iters){
-        
+
         // perform a row-based scan so that the ordering
-        // is suitable for gauss-seidel. Especially, when
-        // updating u_{i,j}, the previous iterations would
-        // have already handled 
+        // is suitable for gauss-seidel.
         for(long i = 1; i < N+1; i++){
             for(long j = 1; j < N+1; j++){
                 double temp_sum = 0.0;
@@ -122,12 +132,12 @@ double* GS_2D_Vanilla_Seq(long N, double* A, double* u, double* f, double h, lon
         iter += 1;
 
         if(iter==1){
-            residual_norm = ResidualNorm(N, A, u, f);
+            residual_norm = ResidualNorm(/*N=*/N, /*u=*/u, /*f=*/f, /*h=*/h);
             initial_residual_norm = residual_norm;
         }
 
-        if (iter%100 == 0){
-            residual_norm = ResidualNorm(N, A, u, f);
+        if (iter%NORM_CALC_INTERVAL == 0){
+            residual_norm = ResidualNorm(/*N=*/N, /*u=*/u, /*f=*/f, /*h=*/h);
             printf("GS: Iter: %d Residual norm: %f\n", iter, residual_norm);
             if(initial_residual_norm/residual_norm > res_factor){
                 printf("GS: Early exit at iteration: %d due to sufficient reduction in residual norm.\n", iter);
@@ -144,23 +154,6 @@ double* GS_2D_Vanilla_Seq(long N, double* A, double* u, double* f, double h, lon
     return u;
 }
 
-void PrintA(long N, double* A){
-    printf("\nPrinting A (without padding)\n");
-
-    for (long ri = 1; ri < N+1; ri++){
-        for(long rj = 1; rj < N+1; rj++){
-            long row = ri*(N+2) + rj;
-            printf("\nROW %d\n", row);
-            for (long ci = 1; ci < N+1; ci++){
-                for(long cj = 1; cj < N+1; cj++){
-                    long col = ci*(N+2) + cj;
-                    printf("%f ", A[row*(N+2)*(N+2) + col]);
-                }
-            }
-        }
-    }
-}
-
 void Printu(long N, double* u){
     printf("\nPrinting u (without padding)\n");
     for (long i = 1; i < N+1; i++) {
@@ -173,11 +166,10 @@ void Printu(long N, double* u){
 
 int main(int argc, char** argv) {
 
-    int N = 100;
+    int N = SIZE;
     // Note that for the linear system: Au = f, we utilize the padding of zeros
     // to avoid conditional statements inside for loops. Thus we are trading some
     // extra space to avoid overheads of conditional statements.
-    double* A = (double*) malloc((N+2) * (N+2) * (N+2) * (N+2) * sizeof(double)); // (N+2) * (N+2) * (N+2) * (N+2)
     double* u = (double*) malloc((N+2) * (N+2) * sizeof(double)); // (N+2) x (N+2)
     double* f = (double*) malloc((N+2) * (N+2) * sizeof(double)); // (N+2) x (N+2)
 
@@ -206,35 +198,8 @@ int main(int argc, char** argv) {
         }
     }
 
-    printf("Initializing A\n");
-    for (long i = 0; i < (N+2)*(N+2); i++){
-        for(long j = 0; j < (N+2)*(N+2); j++){
-            A[i*(N+2)*(N+2) + j] = 0.0;
-        }
-    }
-    printf("Filling A\n");
-    // Since we are primarily interested in the non-boundary values, we use
-    // boundary padding for residual computation.
-    for (long i = 1; i < N+1; i++){
-        for(long j = 1; j < N+1; j++){
-            long row = i*(N+2) + j;
-            long c1 = (i-1)*(N+2) + j;
-            long c2 = (i)*(N+2) + j-1;
-            long c3 = i*(N+2) + j;
-            long c4 = (i+1)*(N+2) + j;
-            long c5 = (i)*(N+2) + j+1;
-            // printf("row: %ld c1: %ld c2: %ld c3: %ld c4: %ld\n", row, c1, c2, c3, c4);
-            A[row*(N+2)*(N+2) + c1] = -1.0/(h*h);
-            A[row*(N+2)*(N+2) + c2] = -1.0/(h*h);
-            A[row*(N+2)*(N+2) + c3] = +4.0/(h*h);
-            A[row*(N+2)*(N+2) + c4] = -1.0/(h*h);
-            A[row*(N+2)*(N+2) + c5] = -1.0/(h*h);
-        }
-    }
+    u = GS_2D_OMP(/*N=*/N, /*u=*/u, /*f=*/f, /*h=*/h, /*max_iters=*/MAX_ITERS, /*res_factor=*/RESIDUAL_FACTOR);
 
-    u = GS_2D_OMP(/*N=*/N, /*A=*/A, /*u=*/u, /*f=*/f, /*h=*/h, /*max_iters=*/5000, /*res_factor=*/10000);
-
-    free(A);
     free(u);
     free(f);
 
